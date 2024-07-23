@@ -118,4 +118,49 @@ const updateCourse = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getUserDetails, updateCourse };
+const googleIntegration = async (req, res) => {
+  const { email, name, picture } = req.body;
+
+  try {
+    console.log("Request received with body:", req.body);
+
+    let users = await user.findOne({ email });
+
+    if (!users) {
+      console.log("User not found. Creating a new user.");
+      // Register new user
+      users = new user({ email: email, username: name, picture, isSSO: true });
+      await users.save();
+      console.log("New user created:", users);
+    } else if (!users.isSSO) {
+      console.log("User found but not an SSO user:", users);
+      // User exists but is not an SSO user
+      return res.status(400).json({
+        message: "Email is already registered with a different method",
+      });
+    } else {
+      console.log("User found and is an SSO user:", users);
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { email: users.email, id: users._id },
+      process.env.SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+    console.log("Token generated:", token);
+
+    res.json({ token });
+  } catch (error) {
+    console.error("Error handling Google registration/login:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  getUserDetails,
+  updateCourse,
+  googleIntegration,
+};

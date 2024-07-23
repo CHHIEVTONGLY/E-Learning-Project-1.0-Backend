@@ -5,7 +5,8 @@ const {
   register,
   login,
   getUserDetails,
-  updateCourse
+  updateCourse,
+  googleIntegration,
 } = require("../Controller/userController");
 const {
   createUserValidator,
@@ -16,6 +17,10 @@ const { verifyToken } = require("../middleware/verifytoken");
 
 router.post("/login", loginValidator, login);
 router.post("/register", createUserValidator, register);
+
+// Google login
+
+router.post("/register-google", googleIntegration);
 
 router.put("/:userID/purchase/:courseID", updateCourse);
 
