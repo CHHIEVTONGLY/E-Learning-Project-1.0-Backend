@@ -31,7 +31,7 @@ const completeOrder = async (req, res) => {
 };
 
 const cancelOrder = (req, res) => {
-  res.redirect("/");
+  res.redirect(process.env.FRONT_URL + "/cancel-order");
 };
 
 module.exports = { pay, cancelOrder, completeOrder, createOrder };

@@ -74,7 +74,9 @@ const login = asyncHandler(async (req, res) => {
 
 const getUserDetails = asyncHandler(async (req, res) => {
   try {
-    const users = await user.findById(req.user.id).select("-password");
+    const users = await user
+      .findById(req.user.id)
+      .select("-password -role -isSSO");
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -2,7 +2,7 @@ const courseModel = require("../Model/CourseModel");
 const asyncHandler = require("express-async-handler");
 
 const getCourse = asyncHandler(async (req, res) => {
-  const course = await courseModel.find({}).limit(5);
+  const course = await courseModel.find({}).limit(5).select("-video");
   res.status(200).send(course);
 });
 
