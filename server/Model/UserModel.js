@@ -4,6 +4,7 @@ const user = new Schema(
   {
     username: { type: String, required: true },
     email: { type: String, unique: true, required: true },
+    picture: { type: String },
     isSSO: { type: Boolean, default: false },
     password: {
       type: String,

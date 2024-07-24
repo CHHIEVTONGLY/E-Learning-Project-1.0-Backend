@@ -7,6 +7,7 @@ const {
   getUserDetails,
   updateCourse,
   googleIntegration,
+  updateUserProfile,
 } = require("../Controller/userController");
 const {
   createUserValidator,
@@ -22,7 +23,11 @@ router.post("/register", createUserValidator, register);
 
 router.post("/register-google", googleIntegration);
 
+// Update course into user information after sucessfully purchased
 router.put("/:userID/purchase/:courseID", updateCourse);
+
+// Update user profile
+router.put("/profile/:id", verifyToken, updateUserProfile);
 
 router.get("/me", verifyToken, getUserDetails);
 module.exports = router;

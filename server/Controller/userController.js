@@ -24,6 +24,8 @@ const register = asyncHandler(async (req, res) => {
         username: username,
         email: email,
         password: hashPassword,
+        picture:
+          "https://upload.wikimedia.org/wikipedia/commons/5/5a/Black_question_mark.png",
       });
 
       const result = await newUser.save();
@@ -74,9 +76,7 @@ const login = asyncHandler(async (req, res) => {
 
 const getUserDetails = asyncHandler(async (req, res) => {
   try {
-    const users = await user
-      .findById(req.user.id)
-      .select("-password -role -isSSO");
+    const users = await user.findById(req.user.id).select("-password -role ");
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -129,13 +129,10 @@ const googleIntegration = async (req, res) => {
     let users = await user.findOne({ email });
 
     if (!users) {
-      console.log("User not found. Creating a new user.");
       // Register new user
       users = new user({ email: email, username: name, picture, isSSO: true });
       await users.save();
-      console.log("New user created:", users);
     } else if (!users.isSSO) {
-      console.log("User found but not an SSO user:", users);
       // User exists but is not an SSO user
       return res.status(400).json({
         message: "Email is already registered with a different method",
@@ -150,12 +147,76 @@ const googleIntegration = async (req, res) => {
       process.env.SECRET_KEY,
       { expiresIn: "1h" }
     );
-    console.log("Token generated:", token);
 
     res.json({ token });
   } catch (error) {
     console.error("Error handling Google registration/login:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const updateUserProfile = async (req, res) => {
+  const userID = req.params.id;
+  const { username, email, password, newPassword, confirmPassword, picture } =
+    req.body;
+
+  try {
+    // Check if the user ID from the token matches the user ID in the request parameters
+    if (req.user._id.toString() !== userID) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    // Find the user by ID
+    const users = await user.findById(userID);
+    if (!users) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Object to store updated fields
+    const updateUserProfile = {};
+
+    // Update fields if provided
+    if (username) updateUserProfile.username = username;
+    if (email) updateUserProfile.email = email;
+    if (picture) updateUserProfile.picture = picture;
+
+    // If password-related fields are provided, handle password update
+    if (password || newPassword || confirmPassword) {
+      if (!password) {
+        return res
+          .status(400)
+          .json({ message: "Current password is required to update password" });
+      }
+
+      const isMatch = await bcrypt.compare(password, users.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Incorrect current password" });
+      }
+
+      if (newPassword && newPassword !== confirmPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password and confirm password do not match" });
+      }
+
+      if (newPassword) {
+        updateUserProfile.password = await bcrypt.hash(newPassword, 10);
+      }
+    }
+
+    // Update user profile
+    const updateUser = await user.findByIdAndUpdate(userID, updateUserProfile, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updateUser) return res.status(404).json({ error: "User not found" });
+
+    res
+      .status(200)
+      .json({ message: "User profile updated successfully", user: updateUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -165,4 +226,5 @@ module.exports = {
   getUserDetails,
   updateCourse,
   googleIntegration,
+  updateUserProfile,
 };
