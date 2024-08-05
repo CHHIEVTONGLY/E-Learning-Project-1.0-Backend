@@ -3,6 +3,9 @@ const { validationResult } = require("express-validator");
 const user = require("../Model/UserModel");
 var bcrypt = require("bcryptjs");
 var jwt = require("jsonwebtoken");
+const s3 = require("../config/s3Config");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { v4: uuidv4 } = require("uuid");
 
 const register = asyncHandler(async (req, res) => {
   const result = validationResult(req);
@@ -157,14 +160,40 @@ const googleIntegration = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
   const userID = req.params.id;
-  const { username, email, password, newPassword, confirmPassword, picture } =
-    req.body;
+  const { username, email, password, newPassword, confirmPassword } = req.body;
+  const picture = req.file; // `profile` from multer
+
+  if (!picture && !req.body.picture) {
+    return res.status(400).json({ message: "Picture is required" });
+  }
+  let pictureUrl;
+
+  if (picture) {
+    const uploadParams = {
+      Bucket: "pprojectbucket", // Replace with your bucket name
+      Key: `${uuidv4()}-${picture.originalname}`, // Unique file name
+      Body: picture.buffer,
+      ContentType: picture.mimetype,
+    };
+    try {
+      // Upload new picture to S3
+      await s3.send(new PutObjectCommand(uploadParams));
+      pictureUrl = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error uploading new profile picture", error: err });
+    }
+  } else if (req.body.picture) {
+    pictureUrl = req.body.picture; // URL directly from body
+  }
 
   try {
     // Check if the user ID from the token matches the user ID in the request parameters
     if (req.user._id.toString() !== userID) {
       return res.status(403).json({ message: "Access denied" });
     }
+
     // Find the user by ID
     const users = await user.findById(userID);
     if (!users) {
@@ -177,7 +206,7 @@ const updateUserProfile = async (req, res) => {
     // Update fields if provided
     if (username) updateUserProfile.username = username;
     if (email) updateUserProfile.email = email;
-    if (picture) updateUserProfile.picture = picture;
+    if (pictureUrl) updateUserProfile.picture = pictureUrl;
 
     // If password-related fields are provided, handle password update
     if (password || newPassword || confirmPassword) {
@@ -204,16 +233,20 @@ const updateUserProfile = async (req, res) => {
     }
 
     // Update user profile
-    const updateUser = await user.findByIdAndUpdate(userID, updateUserProfile, {
-      new: true,
-      runValidators: true,
+    const updatedUser = await user.findByIdAndUpdate(
+      userID,
+      updateUserProfile,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedUser) return res.status(404).json({ error: "User not found" });
+
+    res.status(200).json({
+      message: "User profile updated successfully",
     });
-
-    if (!updateUser) return res.status(404).json({ error: "User not found" });
-
-    res
-      .status(200)
-      .json({ message: "User profile updated successfully", user: updateUser });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });

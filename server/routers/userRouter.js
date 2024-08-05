@@ -14,6 +14,8 @@ const {
   loginValidator,
 } = require("../validation/validation");
 
+const upload = require("../config/uploadConfig");
+
 const { verifyToken } = require("../middleware/verifytoken");
 
 router.post("/login", loginValidator, login);
@@ -27,7 +29,12 @@ router.post("/register-google", googleIntegration);
 router.put("/:userID/purchase/:courseID", updateCourse);
 
 // Update user profile
-router.put("/profile/:id", verifyToken, updateUserProfile);
+router.put(
+  "/profile/:id",
+  verifyToken,
+  upload.single("picture"),
+  updateUserProfile
+);
 
 router.get("/me", verifyToken, getUserDetails);
 module.exports = router;
