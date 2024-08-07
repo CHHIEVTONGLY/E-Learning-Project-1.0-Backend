@@ -9,10 +9,12 @@ const uri = process.env.MONGODB_URI;
 const userRouter = require("./routers/userRouter");
 const paypalRouter = require("./routers/paypalRouter");
 const courseRouter = require("./routers/courseRouter");
-const { verifyToken } = require("./middleware/verifytoken");
+const ABARouter = require("./routers/ABARouter");
 const app = express();
+
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json()); //
 
 app.use(express.static("../frontend/dist"));
@@ -25,7 +27,7 @@ app.use("/api/user", userRouter);
 app.use("/api/paypal", paypalRouter);
 app.use("/api/course", courseRouter);
 
-
+app.use("/api/aba", ABARouter);
 
 mongoose.connect(uri).then(() => {
   console.log("MongoDB connected successfully");
