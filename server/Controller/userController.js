@@ -7,6 +7,8 @@ const s3 = require("../config/s3Config");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { v4: uuidv4 } = require("uuid");
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
 const register = asyncHandler(async (req, res) => {
   const result = validationResult(req);
   const { email, username } = req.body;
@@ -169,6 +171,10 @@ const updateUserProfile = async (req, res) => {
   let pictureUrl;
 
   if (picture) {
+    if (picture.size > MAX_FILE_SIZE)
+      return res
+        .status(400)
+        .json({ message: "File size maximum exceeded 2MB" });
     const uploadParams = {
       Bucket: "pprojectbucket", // Replace with your bucket name
       Key: `${uuidv4()}-${picture.originalname}`, // Unique file name
