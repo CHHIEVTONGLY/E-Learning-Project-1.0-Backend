@@ -42,25 +42,6 @@ const ABACreateOrder = async (req, res) => {
         <input type="hidden" name="payment_option" value="${payment_option}" />
       </form>
       `);
-
-    // res.json({
-    //   hash,
-    //   req_time,
-    //   merchant_id,
-    //   tran_id,
-    //   amount,
-    //   items,
-    //   shipping,
-    //   firstname,
-    //   lastname,
-    //   email,
-    //   phone,
-    //   type,
-    //   payment_option,
-    //   currency,
-    //   return_params,
-    //   payway_url: process.env.ABA_PAYWAY_URL,
-    // });
   } catch (error) {
     console.error("Error in ABACreateOrder:", error);
     res.status(500).send("Internal Server Error");
