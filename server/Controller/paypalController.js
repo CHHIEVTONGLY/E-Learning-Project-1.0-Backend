@@ -24,7 +24,7 @@ const completeOrder = async (req, res) => {
   try {
     await paypal.capturePayment(req.query.token);
     // res.send("Course purchased successfully");
-    res.redirect(process.env.FRONT_URL + "/complete-order");
+    res.redirect(process.env.FRONT_URL + "/course/complete-order");
   } catch (error) {
     res.status(500).send("Error: " + error.message);
   }

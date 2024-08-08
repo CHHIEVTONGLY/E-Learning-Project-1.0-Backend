@@ -9,17 +9,28 @@ function getHash(str) {
 
 const ABACreateOrder = async (req, res) => {
   try {
-    const items = Buffer.from(
-      JSON.stringify([
-        { name: "Test1", quantity: 1, price: "10.00" },
-        { name: "Test2", quantity: 1, price: "5.00" },
-      ])
-    ).toString("base64");
+    const { item } = req.body;
+
+    if (!item || typeof item !== "object") {
+      return res.status(400).send("Invalid item provided");
+    }
+
+    const formattedItem = {
+      name: item.name,
+      quantity: item.quantity,
+      price: parseFloat(item.price).toFixed(2), // Ensure price is formatted to two decimal places
+    };
+
+    // Convert item to base64 string
+    const items = Buffer.from(JSON.stringify([formattedItem])).toString(
+      "base64"
+    );
 
     const req_time = Math.floor(Date.now() / 1000);
     const tran_id = req_time;
-    const amount = "10.00";
+    const amount = formattedItem.price;
     const payment_option = "abapay";
+    const continue_success_url = "http://localhost:8080/complete-order";
 
     // Concatenate all values into a single string
     const hash = getHash(
@@ -28,7 +39,8 @@ const ABACreateOrder = async (req, res) => {
         tran_id +
         amount +
         items +
-        payment_option
+        payment_option +
+        continue_success_url
     );
 
     res.send(`
@@ -40,6 +52,7 @@ const ABACreateOrder = async (req, res) => {
         <input type="hidden" name="merchant_id" value="${process.env.ABA_MERCHANT_ID}" />
         <input type="hidden" name="req_time" value="${req_time}" />
         <input type="hidden" name="payment_option" value="${payment_option}" />
+        <input type="hidden" name="continue_success_url" value="${continue_success_url}" />
       </form>
       `);
   } catch (error) {
